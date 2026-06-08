@@ -624,37 +624,49 @@ A good approach is to split the schema into bounded domains:
 ## High-Level Entity Relationship Diagram
 
 ```text
-User
- ├── Addresses
- ├── Cart
+Users
+ ├── UserAddresses
+ ├── UserSessions
+ ├── Carts
  ├── Orders
  ├── Payments
  ├── Reviews
- ├── Coupons
- └── Notifications
+ ├── Notifications
+ └── SupportTickets
 
-Restaurant
- ├── Restaurant_Address
- ├── Menu_Categories
- ├── Menu_Items
- ├── Inventory
+Restaurants
+ ├── RestaurantAddresses
+ ├── OperatingHours
+ ├── Staff
+ ├── MenuCategories
+ ├── MenuItems
+ │     ├── Images
+ │     ├── Inventory
+ │     └── Reviews
  ├── Orders
+ └── Reviews
+
+Orders
+ ├── OrderItems
+ ├── StatusHistory
+ ├── Payments
+ ├── Refunds
+ ├── DeliveryAssignments
+ └── SupportTickets
+
+DeliveryPartners
+ ├── Vehicles
+ ├── DeliveryAssignments
+ ├── Locations
  ├── Reviews
- └── Restaurant_Staff
-
-Order
- ├── Order_Items
- ├── Payment
- ├── Delivery
- ├── Coupons
- ├── Taxes
- └── Refunds
-
-Delivery_Partner
- ├── Vehicle
- ├── Delivery_Assignment
- ├── Location_Tracking
  └── Earnings
+
+Promotions
+ ├── Coupons
+ └── UserCoupons
+
+Communication
+ └── Notifications
 ```
 
 ---
@@ -663,7 +675,7 @@ Delivery_Partner
 
 The user domain stores customer information.
 
-## Users
+Users
 
 ```sql
 CREATE TABLE users (
@@ -682,7 +694,7 @@ A user can place many orders and save multiple delivery addresses.
 
 ---
 
-## User Addresses
+User Addresses
 
 ```sql
 CREATE TABLE user_addresses (
@@ -716,7 +728,7 @@ Therefore a one-to-many relationship exists.
 
 ---
 
-## User Sessions
+User Sessions
 
 ```sql
 CREATE TABLE user_sessions (
@@ -736,7 +748,7 @@ Used for login management.
 
 Restaurants are one of the core business entities.
 
-## Restaurants
+Restaurants
 
 ```sql
 CREATE TABLE restaurants (
@@ -764,7 +776,7 @@ CREATE TABLE restaurants (
 
 ---
 
-## Restaurant Addresses
+Restaurant Addresses
 
 ```sql
 CREATE TABLE restaurant_addresses (
@@ -784,7 +796,7 @@ Location is separated because geo-search queries are common.
 
 ---
 
-## Restaurant Staff
+Restaurant Staff
 
 ```sql
 CREATE TABLE restaurant_staff (
@@ -809,7 +821,7 @@ Owner
 
 ---
 
-## Restaurant Operating Hours
+Restaurant Operating Hours
 
 ```sql
 CREATE TABLE restaurant_operating_hours (
@@ -833,7 +845,7 @@ Useful when restaurants have different schedules for weekdays and weekends.
 
 Menus change frequently and should be isolated.
 
-## Menu Categories
+Menu Categories
 
 ```sql
 CREATE TABLE menu_categories (
@@ -856,7 +868,7 @@ Beverages
 
 ---
 
-## Menu Items
+Menu Items
 
 ```sql
 CREATE TABLE menu_items (
@@ -880,7 +892,7 @@ CREATE TABLE menu_items (
 
 ---
 
-## Menu Item Images
+Menu Item Images
 
 ```sql
 CREATE TABLE menu_item_images (
@@ -906,7 +918,7 @@ Only URLs are stored in the database.
 
 ---
 
-## Inventory
+Inventory
 
 ```sql
 CREATE TABLE inventory (
@@ -928,7 +940,7 @@ Useful for limited stock items.
 
 Cart data is usually stored in Redis for performance but persisted in SQL.
 
-## Cart
+Cart
 
 ```sql
 CREATE TABLE carts (
@@ -944,7 +956,7 @@ CREATE TABLE carts (
 
 ---
 
-## Cart Items
+Cart Items
 
 ```sql
 CREATE TABLE cart_items (
@@ -964,7 +976,7 @@ CREATE TABLE cart_items (
 
 This is the most important domain.
 
-## Orders
+Orders
 
 ```sql
 CREATE TABLE orders (
@@ -1006,7 +1018,7 @@ CANCELLED
 
 ---
 
-## Order Items
+Order Items
 
 ```sql
 CREATE TABLE order_items (
@@ -1032,7 +1044,7 @@ Do not rely on current menu item prices because prices may change after the orde
 
 ---
 
-## Order Status History
+Order Status History
 
 ```sql
 CREATE TABLE order_status_history (
@@ -1052,7 +1064,7 @@ Useful for customer support and auditing.
 
 ## Payment Domain
 
-## Payments
+Payments
 
 ```sql
 CREATE TABLE payments (
@@ -1074,7 +1086,7 @@ CREATE TABLE payments (
 
 ---
 
-## Refunds
+Refunds
 
 ```sql
 CREATE TABLE refunds (
@@ -1092,7 +1104,7 @@ CREATE TABLE refunds (
 
 ## Delivery Domain
 
-## Delivery Partners
+Delivery Partners
 
 ```sql
 CREATE TABLE delivery_partners (
@@ -1110,7 +1122,7 @@ CREATE TABLE delivery_partners (
 
 ---
 
-## Vehicles
+Vehicles
 
 ```sql
 CREATE TABLE vehicles (
@@ -1126,7 +1138,7 @@ CREATE TABLE vehicles (
 
 ---
 
-## Delivery Assignments
+Delivery Assignments
 
 ```sql
 CREATE TABLE delivery_assignments (
@@ -1142,7 +1154,7 @@ CREATE TABLE delivery_assignments (
 
 ---
 
-## Live Location Tracking
+Live Location Tracking
 
 ```sql
 CREATE TABLE delivery_locations (
@@ -1164,7 +1176,7 @@ Production systems often store recent locations in Redis and archive historical 
 
 ## Review Domain
 
-## Restaurant Reviews
+Restaurant Reviews
 
 ```sql
 CREATE TABLE restaurant_reviews (
@@ -1182,7 +1194,7 @@ CREATE TABLE restaurant_reviews (
 
 ---
 
-## Item Reviews
+Item Reviews
 
 ```sql
 CREATE TABLE menu_item_reviews (
@@ -1200,7 +1212,7 @@ CREATE TABLE menu_item_reviews (
 
 ---
 
-## Delivery Partner Reviews
+Delivery Partner Reviews
 
 ```sql
 CREATE TABLE delivery_reviews (
@@ -1220,7 +1232,7 @@ CREATE TABLE delivery_reviews (
 
 ## Promotion Domain
 
-## Coupons
+Coupons
 
 ```sql
 CREATE TABLE coupons (
@@ -1238,7 +1250,7 @@ CREATE TABLE coupons (
 
 ---
 
-## User Coupons
+User Coupons
 
 ```sql
 CREATE TABLE user_coupons (
@@ -1254,7 +1266,7 @@ CREATE TABLE user_coupons (
 
 ## Notification Domain
 
-## Notifications
+Notifications
 
 ```sql
 CREATE TABLE notifications (
@@ -1276,7 +1288,7 @@ CREATE TABLE notifications (
 
 ## Support Domain
 
-## Support Tickets
+Support Tickets
 
 ```sql
 CREATE TABLE support_tickets (
@@ -1344,53 +1356,44 @@ ClickHouse
 
 ---
 
-## Final Entity Relationship Summary
+## Storage Choices for Each Entity
 
-```text
-Users
- ├── UserAddresses
- ├── UserSessions
- ├── Carts
- ├── Orders
- ├── Payments
- ├── Reviews
- ├── Notifications
- └── SupportTickets
-
-Restaurants
- ├── RestaurantAddresses
- ├── OperatingHours
- ├── Staff
- ├── MenuCategories
- ├── MenuItems
- │     ├── Images
- │     ├── Inventory
- │     └── Reviews
- ├── Orders
- └── Reviews
-
-Orders
- ├── OrderItems
- ├── StatusHistory
- ├── Payments
- ├── Refunds
- ├── DeliveryAssignments
- └── SupportTickets
-
-DeliveryPartners
- ├── Vehicles
- ├── DeliveryAssignments
- ├── Locations
- ├── Reviews
- └── Earnings
-
-Promotions
- ├── Coupons
- └── UserCoupons
-
-Communication
- └── Notifications
-```
+| Entity                     | Primary Storage            | Why This Storage?                                      |
+| -------------------------- | -------------------------- | ------------------------------------------------------ |
+| Users                      | PostgreSQL                 | Strong consistency required for user profile data      |
+| User Addresses             | PostgreSQL + Redis Cache   | Transactional data but frequently read during checkout |
+| User Sessions              | Redis                      | Fast token lookup and expiry support                   |
+| User Payment Methods       | PostgreSQL                 | Financially sensitive transactional data               |
+| Restaurants                | PostgreSQL                 | Source of truth for restaurant metadata                |
+| Restaurant Addresses       | PostgreSQL + Elasticsearch | Geo queries and location filtering                     |
+| Restaurant Staff           | PostgreSQL                 | Internal management data                               |
+| Restaurant Operating Hours | PostgreSQL                 | Frequently updated but transactional                   |
+| Menu Categories            | PostgreSQL                 | Structured relational data                             |
+| Menu Items                 | PostgreSQL                 | Strong consistency for pricing                         |
+| Menu Item Images           | S3/GCS + PostgreSQL URLs   | Binary files should not be stored in DB                |
+| Inventory                  | Redis + PostgreSQL         | Fast updates with durable persistence                  |
+| Cart                       | Redis                      | Extremely high read/write frequency                    |
+| Cart Items                 | Redis                      | Low latency updates during shopping                    |
+| Orders                     | PostgreSQL                 | Critical transactional entity                          |
+| Order Items                | PostgreSQL                 | Historical immutable records                           |
+| Order Status History       | PostgreSQL                 | Audit trail                                            |
+| Payments                   | PostgreSQL                 | ACID compliance required                               |
+| Refunds                    | PostgreSQL                 | Financial correctness                                  |
+| Delivery Partners          | PostgreSQL                 | Transactional profile data                             |
+| Vehicles                   | PostgreSQL                 | Low-frequency updates                                  |
+| Delivery Assignments       | PostgreSQL                 | Order-delivery mapping                                 |
+| Delivery Locations         | Redis + Timeseries DB      | Massive write volume                                   |
+| Restaurant Reviews         | PostgreSQL + Elasticsearch | Transactions + search/filter                           |
+| Menu Item Reviews          | PostgreSQL + Elasticsearch | Review search and analytics                            |
+| Delivery Reviews           | PostgreSQL                 | Lower query volume                                     |
+| Coupons                    | PostgreSQL                 | Business rule consistency                              |
+| User Coupons               | PostgreSQL                 | Prevent duplicate usage                                |
+| Notifications              | PostgreSQL + Kafka         | Persistence + asynchronous delivery                    |
+| Support Tickets            | PostgreSQL                 | Relational workflow data                               |
+| Partner Earnings           | PostgreSQL                 | Financial records                                      |
+| Taxes                      | PostgreSQL                 | Regulatory compliance                                  |
+| Analytics Events           | Kafka                      | High-throughput event ingestion                        |
+| Business Reports           | Data Warehouse             | OLAP queries                                           |
 
 This schema covers roughly **90–95% of the entities found in a production-grade food delivery platform such as Zomato, Swiggy, DoorDash, or Uber Eats**, while keeping transactional concerns, delivery operations, payments, customer support, and restaurant management properly separated into scalable domains.
 

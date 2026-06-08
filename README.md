@@ -5,3 +5,4 @@ This repository contains a collection of system design examples based on real-wo
 ## Table of Contents
 - [E-commerce Platform like Amazon](./05_e_commerce.md)
 - [Chat Application like WhatsApp](./02_chat_application_whatsapp_design.md)
+- [Food Delivery Service like Zomato](./06_food_delivery_zomato.md)
