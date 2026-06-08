@@ -619,7 +619,7 @@ A good approach is to split the schema into bounded domains:
 
 ---
 
-![Database Entities and Relationships](./images/database_entities_realations_zomato.png)
+![Database Entities and Relationships](./images/erd_zomato.png)
 
 ## High-Level Entity Relationship Diagram
 

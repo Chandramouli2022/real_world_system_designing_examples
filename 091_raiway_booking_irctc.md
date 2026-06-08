@@ -1021,7 +1021,7 @@ Refund Processed
 
 ## ERD Diagram
 
-[Database Entities and Relations](./images/database_entities_realations_irctc.png)
+[Database Entities and Relations](./images/erd_irctc.png)
 
 ## Complete Relationship Diagram
 

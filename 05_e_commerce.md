@@ -1496,7 +1496,7 @@ Different entities have different scalability and consistency requirements, so p
 
 **Database Entities and Relationships**
 
-![Database Entities and Relationships](./images/database_entities_realations.png)
+![Database Entities and Relationships](./images/erd_ecommerce.png)
 
 
 # Why Carts Use Redis Instead of SQL

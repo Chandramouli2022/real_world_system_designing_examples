@@ -1120,7 +1120,7 @@ CREATE TABLE audit_logs (
 
 ## Final High-Level ER Relationships
 
-[Database Entities and Relations](./images/database_entities_realations_sports_mgmt.png)
+[Database Entities and Relations](./images/erd_sports_mgmt.png)
 
 ```text
 Users

@@ -353,7 +353,7 @@ The schema below covers the majority of entities used in a real-world movie book
 
 ## ERD Diagram
 
-[Data Entities and Relations](./images/database_entities_realations_bookmyshow.png)
+[Data Entities and Relations](./images/erd_bookmyshow.png)
 
 ## User Management
 

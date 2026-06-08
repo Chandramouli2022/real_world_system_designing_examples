@@ -597,7 +597,7 @@ FINE_PAID
 
 ## Important Relationships
 
-[Database Entities and Relationships](./images/database_entities_realations_library_mgmt_system.png)
+[Database Entities and Relationships](./images/erd_library_mgmt_system.png)
 
 ## Database Choice
 
