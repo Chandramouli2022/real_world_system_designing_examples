@@ -971,4 +971,4 @@ This schema covers roughly **90–95% of the entities found in a production ride
 
 # ERD
 
-[Database Entities and Relationships](./images/erd_ride_app.png)
+![Database Entities and Relationships](./images/erd_ride_app.png)
