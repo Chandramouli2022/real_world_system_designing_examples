@@ -1,0 +1,234 @@
+Table USERS {
+  user_id bigint [pk]
+  name varchar
+  email varchar
+  mobile varchar
+  password_hash varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table PASSENGERS {
+  passenger_id bigint [pk]
+  user_id bigint
+  full_name varchar
+  age int
+  gender varchar
+  nationality varchar
+  berth_preference varchar
+  created_at timestamp
+}
+
+Table STATIONS {
+  station_id bigint [pk]
+  station_code varchar
+  station_name varchar
+  city varchar
+  state varchar
+  zone varchar
+  latitude decimal
+  longitude decimal
+}
+
+Table TRAINS {
+  train_id bigint [pk]
+  train_number varchar
+  train_name varchar
+  train_type varchar
+  source_station_id bigint
+  destination_station_id bigint
+  is_active boolean
+}
+
+Table TRAIN_ROUTES {
+  route_id bigint [pk]
+  train_id bigint
+  station_id bigint
+  stop_number int
+  arrival_time time
+  departure_time time
+  distance_from_source int
+}
+
+Table COACHES {
+  coach_id bigint [pk]
+  train_id bigint
+  coach_number varchar
+  coach_type varchar
+  total_seats int
+}
+
+Table SEATS {
+  seat_id bigint [pk]
+  coach_id bigint
+  seat_number varchar
+  berth_type varchar
+  seat_position varchar
+}
+
+Table JOURNEY_INSTANCES {
+  journey_id bigint [pk]
+  train_id bigint
+  journey_date date
+  status varchar
+  created_at timestamp
+}
+
+Table JOURNEY_SEAT_INVENTORY {
+  inventory_id bigint [pk]
+  journey_id bigint
+  seat_id bigint
+  current_status varchar
+  quota varchar
+  last_updated timestamp
+}
+
+Table QUOTAS {
+  quota_id bigint [pk]
+  quota_code varchar
+  quota_name varchar
+}
+
+Table JOURNEY_QUOTA_ALLOCATION {
+  allocation_id bigint [pk]
+  journey_id bigint
+  quota_id bigint
+  total_seats int
+  available_seats int
+}
+
+Table BOOKINGS {
+  booking_id bigint [pk]
+  pnr_number varchar
+
+  user_id bigint
+  journey_id bigint
+
+  source_station_id bigint
+  destination_station_id bigint
+  boarding_station_id bigint
+
+  booking_status varchar
+  booking_time timestamp
+  total_fare decimal
+}
+
+Table BOOKING_PASSENGERS {
+  booking_passenger_id bigint [pk]
+  booking_id bigint
+  passenger_id bigint
+  seat_id bigint
+  passenger_status varchar
+  coach_number varchar
+  seat_number varchar
+}
+
+Table TICKETS {
+  ticket_id bigint [pk]
+  booking_id bigint
+  ticket_number varchar
+  issued_at timestamp
+  ticket_status varchar
+}
+
+Table PAYMENTS {
+  payment_id bigint [pk]
+  booking_id bigint
+  amount decimal
+  payment_method varchar
+  gateway_transaction_id varchar
+  payment_status varchar
+  paid_at timestamp
+}
+
+Table REFUNDS {
+  refund_id bigint [pk]
+  payment_id bigint
+  refund_amount decimal
+  refund_reason varchar
+  refund_status varchar
+  refunded_at timestamp
+}
+
+Table RAC_QUEUE {
+  rac_id bigint [pk]
+  journey_id bigint
+  booking_passenger_id bigint
+  rac_position int
+  created_at timestamp
+}
+
+Table WAITLIST_QUEUE {
+  waitlist_id bigint [pk]
+  journey_id bigint
+  booking_passenger_id bigint
+  waitlist_number int
+  created_at timestamp
+}
+
+Table NOTIFICATIONS {
+  notification_id bigint [pk]
+  user_id bigint
+  booking_id bigint
+  notification_type varchar
+  status varchar
+  sent_at timestamp
+}
+
+Table AUDIT_LOGS {
+  audit_id bigint [pk]
+  entity_type varchar
+  entity_id bigint
+  action varchar
+  old_value text
+  new_value text
+  performed_by varchar
+  created_at timestamp
+}
+
+
+Ref: PASSENGERS.user_id > USERS.user_id
+
+Ref: TRAINS.source_station_id > STATIONS.station_id
+Ref: TRAINS.destination_station_id > STATIONS.station_id
+
+Ref: TRAIN_ROUTES.train_id > TRAINS.train_id
+Ref: TRAIN_ROUTES.station_id > STATIONS.station_id
+
+Ref: COACHES.train_id > TRAINS.train_id
+
+Ref: SEATS.coach_id > COACHES.coach_id
+
+Ref: JOURNEY_INSTANCES.train_id > TRAINS.train_id
+
+Ref: JOURNEY_SEAT_INVENTORY.journey_id > JOURNEY_INSTANCES.journey_id
+Ref: JOURNEY_SEAT_INVENTORY.seat_id > SEATS.seat_id
+
+Ref: JOURNEY_QUOTA_ALLOCATION.journey_id > JOURNEY_INSTANCES.journey_id
+Ref: JOURNEY_QUOTA_ALLOCATION.quota_id > QUOTAS.quota_id
+
+Ref: BOOKINGS.user_id > USERS.user_id
+Ref: BOOKINGS.journey_id > JOURNEY_INSTANCES.journey_id
+
+Ref: BOOKINGS.source_station_id > STATIONS.station_id
+Ref: BOOKINGS.destination_station_id > STATIONS.station_id
+Ref: BOOKINGS.boarding_station_id > STATIONS.station_id
+
+Ref: BOOKING_PASSENGERS.booking_id > BOOKINGS.booking_id
+Ref: BOOKING_PASSENGERS.passenger_id > PASSENGERS.passenger_id
+Ref: BOOKING_PASSENGERS.seat_id > SEATS.seat_id
+
+Ref: TICKETS.booking_id > BOOKINGS.booking_id
+
+Ref: PAYMENTS.booking_id > BOOKINGS.booking_id
+
+Ref: REFUNDS.payment_id > PAYMENTS.payment_id
+
+Ref: RAC_QUEUE.journey_id > JOURNEY_INSTANCES.journey_id
+Ref: RAC_QUEUE.booking_passenger_id > BOOKING_PASSENGERS.booking_passenger_id
+
+Ref: WAITLIST_QUEUE.journey_id > JOURNEY_INSTANCES.journey_id
+Ref: WAITLIST_QUEUE.booking_passenger_id > BOOKING_PASSENGERS.booking_passenger_id
+
+Ref: NOTIFICATIONS.user_id > USERS.user_id
+Ref: NOTIFICATIONS.booking_id > BOOKINGS.booking_id

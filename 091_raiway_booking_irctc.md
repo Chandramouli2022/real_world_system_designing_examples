@@ -1117,3 +1117,517 @@ NOTIFICATIONS
 For interview discussions, the most critical tables are **JOURNEY_INSTANCES**, **JOURNEY_SEAT_INVENTORY**, **BOOKINGS**, and **BOOKING_PASSENGERS** because they collectively solve the hardest problem in IRCTC: maintaining seat inventory consistency while supporting RAC and Waitlist promotion under extremely high concurrency.
 
 ---
+
+# How Train Search Works in IRCTC
+
+Many candidates think train search simply runs a SQL query like:
+
+```sql
+SELECT *
+FROM trains
+WHERE source = 'BBS'
+AND destination = 'VJA';
+```
+
+This works for small systems but completely fails at IRCTC scale.
+
+The reason is that users search by **intermediate stations**, not just train source and destination.
+
+Example:
+
+```text
+Train Route
+
+Howrah
+Kharagpur
+Bhubaneswar
+Visakhapatnam
+Vijayawada
+Chennai
+```
+
+User searches:
+
+```text
+From : Bhubaneswar
+To   : Vijayawada
+```
+
+Even though the train's actual source is Howrah and destination is Chennai, this train must appear in the results.
+
+Therefore search is primarily based on **TRAIN_ROUTES**, not TRAINS.
+
+---
+
+## Step 1: User Searches
+
+Request:
+
+```json
+{
+  "source": "BBS",
+  "destination": "VJA",
+  "journeyDate": "2026-12-10",
+  "class": "3A",
+  "quota": "GENERAL"
+}
+```
+
+Request reaches:
+
+```text
+Client
+   |
+API Gateway
+   |
+Search Service
+```
+
+---
+
+## Step 2: Find Candidate Trains
+
+Search Service checks route data.
+
+```sql
+TRAIN_ROUTES
+```
+
+Example:
+
+| train_id | station     | stop_number |
+| -------- | ----------- | ----------- |
+| 1        | Howrah      | 1           |
+| 1        | Kharagpur   | 2           |
+| 1        | Bhubaneswar | 3           |
+| 1        | Vizag       | 4           |
+| 1        | Vijayawada  | 5           |
+| 1        | Chennai     | 6           |
+
+Search logic:
+
+```sql
+SELECT train_id
+FROM train_routes src
+JOIN train_routes dest
+ON src.train_id = dest.train_id
+WHERE src.station_id = :source
+AND dest.station_id = :destination
+AND src.stop_number < dest.stop_number;
+```
+
+Result:
+
+```text
+Train 12841
+Train 12805
+Train 22879
+```
+
+The condition:
+
+```text
+source_stop < destination_stop
+```
+
+ensures passenger is travelling in the train's direction.
+
+---
+
+## Step 3: Fetch Journey Instance
+
+For every train returned:
+
+```sql
+JOURNEY_INSTANCES
+```
+
+Search for:
+
+```text
+Train + Date
+```
+
+Example:
+
+```text
+Train 12841
+Date 10-Jan
+```
+
+Result:
+
+```text
+Journey ID = 987654
+```
+
+---
+
+## Step 4: Check Availability
+
+This is the expensive part.
+
+Naively checking inventory for every search request would overload the booking database.
+
+Imagine:
+
+```text
+10 Million Users
+Only 100 Thousand Bookings
+```
+
+Search traffic is much larger than booking traffic.
+
+Therefore availability is usually precomputed.
+
+---
+
+## Step 5: Availability Cache
+
+Instead of querying inventory every time:
+
+```text
+Search Service
+      |
+      v
+Redis Cache
+```
+
+Cache Key:
+
+```text
+AVAILABILITY:
+12841:
+10-JAN:
+3A:
+GENERAL:
+BBS:
+VJA
+```
+
+Value:
+
+```json
+{
+  "available": 24,
+  "rac": 10,
+  "waitlist": 0
+}
+```
+
+Search Service simply reads Redis.
+
+Response time:
+
+```text
+1-5 ms
+```
+
+instead of hitting the database.
+
+---
+
+## Step 6: Fare Calculation
+
+Fare depends on:
+
+```text
+Source
+Destination
+Class
+Quota
+Train Type
+```
+
+Search Service either:
+
+```text
+Calls Fare Service
+```
+
+or
+
+```text
+Reads Fare Cache
+```
+
+Example:
+
+```text
+BBS -> VJA
+
+3A Fare = ₹1450
+```
+
+---
+
+## Step 7: Build Search Response
+
+Final response:
+
+```json
+{
+  "trainNumber": "12841",
+  "trainName": "Coromandel Express",
+  "departure": "08:30",
+  "arrival": "18:45",
+  "availableSeats": 24,
+  "fare": 1450
+}
+```
+
+Returned to user.
+
+---
+
+## Optimized Search Architecture
+
+```text
+User
+ |
+ v
+API Gateway
+ |
+ v
+Search Service
+ |
+ +----------------------+
+ |                      |
+ v                      v
+Route Cache        Availability Cache
+ |                      |
+ v                      v
+Redis              Redis
+ |
+ v
+Train Metadata
+```
+
+Notice:
+
+```text
+Search Service
+```
+
+does not directly hit:
+
+```text
+Bookings Database
+Seat Inventory Database
+```
+
+for every request.
+
+This is a major scalability optimization.
+
+---
+
+## How Availability Cache Gets Updated
+
+When booking occurs:
+
+```text
+Seat Booked
+```
+
+Booking Service publishes event:
+
+```text
+SEAT_BOOKED
+```
+
+to Kafka.
+
+```text
+Booking Service
+       |
+       v
+      Kafka
+```
+
+Consumer:
+
+```text
+Availability Updater
+```
+
+receives event.
+
+```text
+SEAT_BOOKED
+      |
+      v
+Update Redis Cache
+```
+
+Now future searches see updated seat counts.
+
+---
+
+## Why Search and Booking Are Separated
+
+Search requires:
+
+```text
+Very High Read Traffic
+```
+
+Booking requires:
+
+```text
+Strong Consistency
+```
+
+Mixing them causes problems.
+
+Example:
+
+```text
+10 Million Searches
+
+100 Thousand Bookings
+```
+
+If every search touches the booking database:
+
+```text
+Database becomes bottleneck
+```
+
+Therefore production systems follow:
+
+```text
+Search System
+      |
+      v
+Cache + Read Optimized Data
+
+Booking System
+      |
+      v
+Transactional Inventory Database
+```
+
+This separation is one of the most important design decisions in large-scale reservation systems.
+
+---
+
+## Complete Search Flow
+
+```text
+User Search
+     |
+     v
+Search Service
+     |
+     v
+Find Trains Using TRAIN_ROUTES
+     |
+     v
+Find Journey Instance
+     |
+     v
+Get Availability From Redis
+     |
+     v
+Get Fare Information
+     |
+     v
+Build Search Response
+     |
+     v
+Return Trains To User
+```
+
+In an interview, if asked **"What is the biggest optimization in train search?"**, the expected answer is:
+
+> Search should never query the booking inventory database directly for every request. Availability should be precomputed and served from Redis/cache, while booking remains a separate strongly consistent system responsible for actual seat allocation.
+
+---
+# Ticket Booking Flow in IRCTC
+
+The ticket booking flow is the most critical part of the railway reservation system because it involves inventory management, payment processing, seat allocation, RAC/Waitlist handling, and concurrency control.
+
+
+## Complete Flow Diagram
+
+```text
+User
+ |
+ v
+Search Train
+ |
+ v
+Select Train
+ |
+ v
+Enter Passenger Details
+ |
+ v
+Create Booking Request
+ |
+ v
+Lock Inventory
+ |
+ v
+Calculate Fare
+ |
+ v
+Payment Initiated
+ |
+ v
+Payment Gateway
+ |
+ +----------------------+
+ |                      |
+ v                      v
+Failed               Success
+ |                      |
+Release Lock           Allocate Seat
+ |                      |
+Booking Failed         Generate PNR
+                        |
+                        v
+                  Generate Ticket
+                        |
+                        v
+                Publish Event
+                        |
+                        v
+          +-------------+-------------+
+          |                           |
+          v                           v
+   Notification Service      Analytics Service
+          |
+          v
+     SMS / Email
+```
+
+**Interview-Worthy Observation**
+The actual challenge in IRCTC is **not payment processing or train search**. The hardest problem is:
+
+```text
+Concurrent Seat Allocation
+```
+
+During Tatkal booking:
+
+```text
+1 Seat
+1000 Users
+Same Second
+```
+
+The system must guarantee:
+
+```text
+One Seat
+      =
+One Passenger
+```
+
+using inventory locking, transactions, and strong consistency before proceeding to payment confirmation and ticket generation.
+
+---
+
+
